@@ -89,8 +89,9 @@ if __name__ == '__main__':
     print("  ╚══════════════════════════════════════╝")
     print()
 
+    port = int(os.environ.get('PORT', Config.PORT))
     app.run(
-        host  = Config.HOST,
-        port  = Config.PORT,
-        debug = Config.DEBUG,
+        host  = '0.0.0.0',
+        port  = port,
+        debug = False,
     )
