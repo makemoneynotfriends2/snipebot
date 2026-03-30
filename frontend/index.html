@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Snipe Bot</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--surface:#111113;--surface2:#18181b;--surface3:#222226;--surface4:#2a2a2f;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.04);
+  --text:#ececf1;--text2:#8b8b96;--text3:#44444e;
+  --accent:#0a84ff;--green:#30d158;--orange:#ff9f0a;--red:#ff453a;--purple:#bf5af2;
+  --r:10px;--r-sm:7px;
+  --shadow:0 2px 16px rgba(0,0,0,.5);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
+  background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+
+/* ─── App Layout ────────────────────────────────────────────────── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.app-body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ─── Top Navigation ────────────────────────────────────────────── */
+.top-nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px;gap:2px;flex-shrink:0}
+.nav-logo{display:flex;align-items:center;gap:9px;padding:4px 10px;margin-right:10px}
+.nav-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--purple));
+  border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.nav-logo-name{font-size:13px;font-weight:700;letter-spacing:-.2px}
+.nav-logo-ver{font-size:10px;color:var(--text3);margin-top:1px}
+.tab-btn{display:flex;align-items:center;gap:8px;padding:7px 14px;border:none;
+  background:transparent;color:var(--text2);font-size:13px;font-weight:500;
+  border-radius:var(--r-sm);cursor:pointer;transition:.12s}
+.tab-btn:hover{background:var(--surface2);color:var(--text)}
+.tab-btn.active{background:var(--surface3);color:var(--text)}
+.tab-icon{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;flex-shrink:0}
+.t-bot{background:rgba(48,209,88,.12)}
+.t-profile{background:rgba(10,132,255,.12)}
+.t-settings{background:rgba(191,90,242,.12)}
+.t-ebay{background:rgba(255,159,10,.1)}
+.nav-ebay-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;
+  background:rgba(255,159,10,.12);color:var(--orange);margin-left:2px}
+.nav-spacer{flex:1}
+
+/* ─── Tab Panes ─────────────────────────────────────────────────── */
+.tab-pane{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab-pane.active{display:flex}
+
+/* ─── Main Header ───────────────────────────────────────────────── */
+.main-header{padding:14px 22px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:15px;font-weight:700}
+.page-subtitle{font-size:11px;color:var(--text2);margin-top:2px}
+.header-actions{display:flex;gap:8px}
+.hdr-btn{padding:5px 12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;transition:.12s}
+.hdr-btn:hover{color:var(--text);border-color:rgba(255,255,255,.15)}
+
+/* ─── Status Bar ────────────────────────────────────────────────── */
+.status-bar{padding:10px 22px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:18px;flex-shrink:0;flex-wrap:wrap}
+.s-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.s-chip .v{font-weight:700;color:var(--text);font-size:12px}
+.s-dot{width:6px;height:6px;border-radius:50%}
+.s-dot.running{background:var(--green);animation:pulse 1.4s ease-in-out infinite}
+.s-dot.stopped{background:var(--text3)}
+.s-dot.error{background:var(--red)}
+.s-dot.rate_limited{background:var(--orange);animation:pulse 1s ease-in-out infinite}
+.s-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:2px}
+.s-badge.vision{background:rgba(191,90,242,.15);color:var(--purple)}
+.s-badge.discord{background:rgba(88,101,242,.15);color:#5865f2}
+
+/* ─── Bot Bottom Bar ────────────────────────────────────────────── */
+.bot-bottom-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:12px}
+.bot-selected-summary{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.bss-hint{font-size:12px;color:var(--text3)}
+.bss-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:11px;font-weight:500}
+.bss-chip-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.bss-chip-x{color:var(--text3);cursor:pointer;font-size:10px;margin-left:2px}
+.bss-chip-x:hover{color:var(--red)}
+
+/* ─── Start/Stop Button ─────────────────────────────────────────── */
+.start-btn{width:160px;height:40px;border:none;border-radius:var(--r-sm);flex-shrink:0;
+  font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.start-btn.idle{background:var(--green);color:#000}
+.start-btn.idle:hover{filter:brightness(1.1)}
+.start-btn.running{background:rgba(255,69,58,.12);color:var(--red);
+  border:1px solid rgba(255,69,58,.25)}
+.start-btn.running:hover{background:rgba(255,69,58,.2)}
+.start-btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;
+  animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+
+/* ─── Bot Profile Selection ─────────────────────────────────────── */
+.profile-select-wrap{flex:1;overflow-y:auto;padding:20px 22px}
+.profile-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;cursor:pointer;transition:.15s;position:relative}
+.profile-card:hover{border-color:rgba(255,255,255,.14);transform:translateY(-1px)}
+.profile-card.selected{border-color:var(--green);background:rgba(48,209,88,.04)}
+.pc-check{position:absolute;top:10px;right:10px;width:20px;height:20px;background:var(--green);
+  color:#000;border-radius:50%;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pc-name{font-size:14px;font-weight:700;margin-bottom:8px}
+.pc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.pc-tag{padding:2px 7px;background:var(--surface3);border-radius:4px;
+  font-size:10px;color:var(--text2)}
+.pc-tag.brand{background:rgba(10,132,255,.12);color:var(--accent)}
+.pc-tag.kw{background:rgba(191,90,242,.1);color:var(--purple)}
+.pc-meta{font-size:10px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap}
+.pc-meta .ai{color:var(--purple)}
+.empty-profiles{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-profiles .ei{font-size:42px;margin-bottom:12px}
+.empty-profiles h3{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.empty-profiles p{font-size:12px;line-height:1.5}
+.empty-profiles .go-profile{display:inline-block;margin-top:14px;padding:8px 18px;
+  background:var(--accent);color:#fff;border-radius:6px;font-size:12px;
+  font-weight:600;cursor:pointer;border:none}
+
+/* ─── Live Feed ─────────────────────────────────────────────────── */
+.feed-wrap{flex:1;overflow-y:auto;padding:16px 22px}
+.feed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.feed-empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.feed-empty .fi{font-size:42px;margin-bottom:12px}
+.feed-empty h3{font-size:15px;color:var(--text2);font-weight:600;margin-bottom:5px}
+.item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;cursor:pointer;transition:.15s;position:relative;
+  animation:card-in .25s ease}
+@keyframes card-in{from{opacity:0;transform:translateY(-6px) scale(.98)}}
+.item-card:hover{border-color:rgba(255,255,255,.14);transform:translateY(-2px);box-shadow:var(--shadow)}
+.item-card.fresh{border-color:rgba(48,209,88,.35)}
+.item-card.vision-match{border-color:rgba(191,90,242,.5);background:rgba(191,90,242,.03)}
+.ic-img-wrap{aspect-ratio:1;background:var(--surface2);overflow:hidden;position:relative}
+.ic-img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.item-card:hover .ic-img{transform:scale(1.05)}
+.ic-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:32px;color:var(--text3)}
+.ic-new{position:absolute;top:7px;left:7px;background:var(--green);color:#000;
+  font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px}
+.ic-vision{position:absolute;top:7px;left:7px;background:var(--purple);color:#fff;
+  font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px}
+.ic-time{position:absolute;bottom:7px;right:7px;background:rgba(0,0,0,.65);
+  color:rgba(255,255,255,.7);font-size:9px;padding:2px 6px;border-radius:4px;
+  backdrop-filter:blur(4px)}
+.ic-body{padding:9px 11px 11px}
+.ic-brand{font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:2px}
+.ic-title{font-size:11.5px;font-weight:500;color:var(--text);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:7px}
+.ic-foot{display:flex;align-items:center;justify-content:space-between}
+.ic-price{font-size:15px;font-weight:800;letter-spacing:-.2px}
+.ic-size{font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:4px}
+.ic-profile{font-size:9px;color:var(--text3);margin-top:4px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+
+/* ─── Profile Tab — Split Layout ────────────────────────────────── */
+.profile-split{flex:1;display:flex;overflow:hidden}
+.ps-left{width:224px;border-right:1px solid var(--border);display:flex;
+  flex-direction:column;flex-shrink:0;overflow:hidden}
+.ps-left-header{padding:13px 14px 11px;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.ps-left-title{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+.ps-new-btn{padding:4px 10px;background:transparent;border:1px solid var(--border);
+  border-radius:5px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:.12s}
+.ps-new-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
+.profile-list{flex:1;overflow-y:auto;padding:6px 6px}
+.profile-list-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--r-sm);
+  cursor:pointer;transition:.12s;border:1px solid transparent}
+.profile-list-item:hover{background:var(--surface2)}
+.profile-list-item.active{background:var(--surface3);border-color:var(--border)}
+.pli-name{font-size:13px;font-weight:500;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pli-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.pli-icon{width:28px;height:28px;border-radius:6px;background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.ps-right{flex:1;overflow-y:auto;padding:22px}
+
+/* ─── Profile Editor ────────────────────────────────────────────── */
+.editor-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;text-align:center;color:var(--text3)}
+.editor-empty .ei{font-size:40px;margin-bottom:12px}
+.editor-empty h3{font-size:15px;color:var(--text2);font-weight:600;margin-bottom:5px}
+.editor-empty p{font-size:12px;line-height:1.5}
+.profile-editor{max-width:760px}
+.editor-name{font-size:22px;font-weight:800;background:transparent;border:none;
+  color:var(--text);outline:none;width:100%;margin-bottom:20px;border-bottom:1px solid var(--border);
+  padding-bottom:10px;font-family:inherit;letter-spacing:-.3px}
+.editor-name::placeholder{color:var(--text3)}
+.editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.editor-col{}
+.e-block{background:var(--surface2);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:10px;
+  border:1px solid var(--border2)}
+.e-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;display:block}
+.e-input{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;
+  padding:7px 10px;font-size:13px;color:var(--text);outline:none;transition:.12s;font-family:inherit}
+.e-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.12)}
+.e-input::placeholder{color:var(--text3)}
+.e-row{display:flex;gap:7px;margin-bottom:7px}
+.e-row .e-input{flex:1}
+.e-add-btn{padding:7px 12px;background:var(--accent);border:none;border-radius:6px;
+  color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.12s}
+.e-add-btn:hover{filter:brightness(1.1)}
+.e-add-btn.secondary{background:var(--surface3);border:1px solid var(--border);color:var(--text2)}
+.e-add-btn.secondary:hover{color:var(--text)}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+  border-radius:5px;font-size:11px;font-weight:600;line-height:1.4}
+.tag.brand{background:rgba(10,132,255,.12);color:var(--accent)}
+.tag.kw{background:rgba(191,90,242,.1);color:var(--purple)}
+.tag-x{cursor:pointer;opacity:.5;font-size:11px}
+.tag-x:hover{opacity:1}
+.e-hint{font-size:10px;color:var(--text3);margin-top:5px;line-height:1.4}
+.price-range-row{display:flex;align-items:center;gap:8px}
+.price-range-row .e-input{flex:1}
+.price-range-sep{color:var(--text3);font-size:12px;flex-shrink:0}
+
+/* ─── Image Upload ──────────────────────────────────────────────── */
+.img-upload-zone{border:1.5px dashed var(--border);border-radius:var(--r-sm);
+  padding:20px;text-align:center;cursor:pointer;transition:.15s;position:relative}
+.img-upload-zone:hover,.img-upload-zone.drag-over{border-color:var(--accent);
+  background:rgba(10,132,255,.04)}
+.iuz-icon{font-size:24px;margin-bottom:6px}
+.iuz-text{font-size:12px;color:var(--text2);margin-bottom:2px}
+.iuz-hint{font-size:10px;color:var(--text3)}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:7px;margin-top:10px}
+.img-thumb{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--surface3)}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-thumb-del{position:absolute;top:3px;right:3px;width:18px;height:18px;
+  background:rgba(0,0,0,.7);border:none;border-radius:50%;color:#fff;font-size:9px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:.12s}
+.img-thumb:hover .img-thumb-del{opacity:1}
+.img-upload-spinner{font-size:10px;color:var(--text3);margin-top:6px}
+.img-count-badge{font-size:10px;color:var(--text2);margin-top:6px;display:block}
+.save-disabled-hint{font-size:10px;color:var(--text3);text-align:center;padding:6px;
+  background:var(--surface3);border-radius:6px;margin-top:8px}
+
+/* ─── Editor Actions ────────────────────────────────────────────── */
+.editor-actions{display:flex;gap:10px;margin-top:4px;padding-top:14px;
+  border-top:1px solid var(--border)}
+.btn-save{padding:9px 22px;background:var(--accent);border:none;border-radius:7px;
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.12s}
+.btn-save:hover{filter:brightness(1.1)}
+.btn-delete{padding:9px 18px;background:transparent;border:1px solid rgba(255,69,58,.3);
+  border-radius:7px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+.btn-delete:hover{background:rgba(255,69,58,.08)}
+
+/* ─── Settings Tab ──────────────────────────────────────────────── */
+.settings-tab-body{flex:1;overflow-y:auto;padding:24px}
+.settings-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1000px}
+@media(max-width:800px){.settings-cols{grid-template-columns:1fr}}
+.settings-col-title{font-size:13px;font-weight:700;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;gap:8px}
+.settings-panel{max-width:520px}
+.settings-title{font-size:18px;font-weight:800;margin-bottom:20px;letter-spacing:-.2px}
+.settings-section{margin-bottom:20px}
+.settings-section-title{font-size:11px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.settings-field{background:var(--surface2);border-radius:var(--r-sm);padding:14px 16px;
+  margin-bottom:10px;border:1px solid var(--border2)}
+.settings-field-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+.settings-field-hint{font-size:10px;color:var(--text3);margin-top:5px;line-height:1.5}
+.settings-status{display:flex;align-items:center;gap:6px;font-size:11px;
+  padding:6px 10px;border-radius:5px;margin-top:8px}
+.settings-status.ok{background:rgba(48,209,88,.1);color:var(--green)}
+.settings-status.missing{background:rgba(255,159,10,.08);color:var(--orange)}
+.btn-settings-save{padding:9px 24px;background:var(--accent);border:none;border-radius:7px;
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.12s;margin-top:4px}
+.btn-settings-save:hover{filter:brightness(1.1)}
+.key-input-wrap{display:flex;gap:6px;align-items:center}
+.key-input-wrap .e-input{flex:1}
+.key-toggle{padding:7px 10px;background:var(--surface3);border:1px solid var(--border);
+  border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;flex-shrink:0}
+.key-toggle:hover{color:var(--text)}
+
+/* ─── Rejected Items Panel ───────────────────────────────────────── */
+.rejected-panel{max-width:520px}
+.rejected-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.rej-card{background:var(--surface2);border-radius:var(--r-sm);padding:10px 14px;
+  display:flex;align-items:center;gap:12px;border:1px solid var(--border);transition:.12s}
+.rej-card:hover{border-color:rgba(255,255,255,.12)}
+.rej-img{width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface3)}
+.rej-img-ph{width:48px;height:48px;border-radius:6px;flex-shrink:0;background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;font-size:20px}
+.rej-info{flex:1;min-width:0}
+.rej-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.rej-meta{font-size:10px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.rej-reason{font-size:10px;color:var(--orange);background:rgba(255,159,10,.1);
+  padding:2px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;max-width:200px;
+  overflow:hidden;text-overflow:ellipsis}
+.rej-price{font-size:13px;font-weight:800;flex-shrink:0;letter-spacing:-.2px}
+.rej-empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:12px}
+
+/* ─── Toast ─────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);color:var(--text);
+  padding:9px 16px;border-radius:var(--r-sm);font-size:12px;font-weight:500;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);border:1px solid var(--border);
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:999;max-width:280px}
+.toast.on{opacity:1}
+
+/* ─── Scrollbars ────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ════════════════ TOP NAV ════════════════════════════════════ -->
+<div class="top-nav">
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🎯</div>
+    <div>
+      <div class="nav-logo-name">Snipe Bot</div>
+      <div class="nav-logo-ver">V2 Beta</div>
+    </div>
+  </div>
+
+  <button class="tab-btn tab-bot active" onclick="setTab('bot')">
+    <div class="tab-icon t-bot">🤖</div>Bot
+  </button>
+  <button class="tab-btn tab-profile" onclick="setTab('profile')">
+    <div class="tab-icon t-profile">📋</div>Profile
+  </button>
+  <button class="tab-btn tab-settings" onclick="setTab('settings')">
+    <div class="tab-icon t-settings">🔑</div>Einstellungen
+  </button>
+  <button class="tab-btn tab-rejected" onclick="setTab('rejected')">
+    <div class="tab-icon" style="background:rgba(255,159,10,.1)">🗑</div>Abgelehnte
+  </button>
+
+  <div class="nav-spacer"></div>
+
+  <div class="tab-btn" style="opacity:.45;cursor:default">
+    <div class="tab-icon t-ebay">📊</div>eBay<span class="nav-ebay-badge">Bald</span>
+  </div>
+</div><!-- /top-nav -->
+
+
+<!-- ════════════════ APP BODY ════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- ══ TAB: Bot ══════════════════════════════════════════════════ -->
+  <div id="tab-bot" class="tab-pane active">
+    <div class="main-header">
+      <div>
+        <div class="page-title">🤖 Snipe Bot</div>
+        <div class="page-subtitle">Profile auswählen und Bot starten</div>
+      </div>
+      <div class="header-actions">
+        <button class="hdr-btn" id="feed-toggle-btn" onclick="toggleFeedView()" style="display:none">
+          📋 Alle Listings
+        </button>
+        <button class="hdr-btn" onclick="clearFeed()">Feed leeren</button>
+      </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+      <div class="s-chip"><div class="s-dot stopped" id="s-dot"></div><span id="s-status-txt">Gestoppt</span></div>
+      <div class="s-chip">Gescannt: <span class="v" id="s-seen">0</span></div>
+      <div class="s-chip">Matches: <span class="v" id="s-match" style="color:var(--green)">0</span></div>
+      <div class="s-chip" id="s-vision-chip" style="display:none">
+        <span class="s-badge vision">🧠 KI aktiv</span>
+      </div>
+      <div class="s-chip" id="s-discord-chip" style="display:none">
+        <span class="s-badge discord">🔔 Discord</span>
+      </div>
+      <div class="s-chip" id="s-last-chip" style="display:none">Letzter Poll: <span class="v" id="s-last">–</span></div>
+    </div>
+
+    <!-- Profile auswählen (vor Start) -->
+    <div id="bot-select-view" class="profile-select-wrap">
+      <div class="profile-cards-grid" id="bot-profile-grid"></div>
+    </div>
+
+    <!-- Live Feed (während Bot läuft) -->
+    <div id="bot-feed-view" class="feed-wrap" style="display:none">
+      <div class="feed-empty" id="feed-empty">
+        <div class="fi">⚡</div>
+        <h3>Warte auf neue Listings…</h3>
+        <p>Der Bot ist aktiv und scannt Vinted in Echtzeit.</p>
+      </div>
+      <div class="feed-grid" id="feed-grid"></div>
+    </div>
+
+    <!-- Bottom: selected summary + start/stop -->
+    <div class="bot-bottom-bar">
+      <div class="bot-selected-summary" id="bot-selected-list">
+        <span class="bss-hint">Kein Profil ausgewählt — Profile oben anklicken</span>
+      </div>
+      <button class="start-btn idle" id="start-btn" onclick="toggleBot()" disabled>
+        <span id="btn-icon">▶</span>
+        <span id="btn-text">Bot starten</span>
+      </button>
+    </div>
+  </div><!-- /tab-bot -->
+
+
+  <!-- ══ TAB: Profile ══════════════════════════════════════════════ -->
+  <div id="tab-profile" class="tab-pane">
+    <div class="profile-split">
+
+      <!-- Left: profile list -->
+      <div class="ps-left">
+        <div class="ps-left-header">
+          <span class="ps-left-title">Watch Profile</span>
+          <button class="ps-new-btn" onclick="newProfile()">+ Neu</button>
+        </div>
+        <div class="profile-list" id="profile-list"></div>
+      </div>
+
+      <!-- Right: editor -->
+      <div class="ps-right">
+        <div class="editor-empty" id="editor-empty">
+          <div class="ei">📋</div>
+          <h3>Kein Profil ausgewählt</h3>
+          <p>Wähle ein Profil aus der Liste oder erstelle ein neues.</p>
+        </div>
+
+        <div id="editor-form" style="display:none">
+          <div class="profile-editor">
+            <input class="editor-name" id="e-name" placeholder="Profil-Name (z.B. Adidas Originals)" maxlength="80"/>
+            <div class="editor-grid">
+              <!-- Linke Spalte -->
+              <div class="editor-col">
+                <div class="e-block">
+                  <label class="e-label">Marken</label>
+                  <div class="e-row">
+                    <input class="e-input" id="e-brand-inp" placeholder="z.B. Adidas"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault();addEditorTag('brand')}"/>
+                    <button class="e-add-btn" onclick="addEditorTag('brand')">Add</button>
+                  </div>
+                  <div class="tag-wrap" id="e-brand-tags"></div>
+                  <div class="e-hint">Bot sucht nach diesen Marken auf Vinted</div>
+                </div>
+                <div class="e-block">
+                  <label class="e-label">Keywords <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+                  <div class="e-row">
+                    <input class="e-input" id="e-kw-inp" placeholder="z.B. originals"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault();addEditorTag('kw')}"/>
+                    <button class="e-add-btn secondary" onclick="addEditorTag('kw')">Add</button>
+                  </div>
+                  <div class="tag-wrap" id="e-kw-tags"></div>
+                  <div class="e-hint">Mind. 1 Keyword muss im Titel des Artikels sein</div>
+                </div>
+                <div class="e-block">
+                  <label class="e-label">Preisrange (€)</label>
+                  <div class="price-range-row">
+                    <input class="e-input" id="e-price-min" type="number" placeholder="Min" min="0"/>
+                    <span class="price-range-sep">–</span>
+                    <input class="e-input" id="e-price-max" type="number" placeholder="Max" min="0"/>
+                  </div>
+                </div>
+                <div class="e-block">
+                  <label class="e-label">Poll-Intervall (Sekunden)</label>
+                  <input class="e-input" id="e-interval" type="number" value="15" min="10" max="120"/>
+                  <div class="e-hint">Min. 10s — sicher gegen Vinted Rate-Limiting</div>
+                </div>
+                <div class="e-block">
+                  <label class="e-label">Discord Webhook <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+                  <input class="e-input" id="e-discord-webhook" type="url"
+                    placeholder="https://discord.com/api/webhooks/…"/>
+                  <div class="e-hint">Profil-spezifischer Webhook — überschreibt den globalen</div>
+                </div>
+              </div>
+              <!-- Rechte Spalte: Bilder -->
+              <div class="editor-col">
+                <div class="e-block" style="height:calc(100% - 10px)">
+                  <label class="e-label">Trainingsbilder <span style="color:var(--purple);font-weight:600">🧠 KI-Bilderkennung</span></label>
+                  <div id="img-upload-area">
+                    <div id="img-save-first" class="save-disabled-hint">
+                      💾 Profil zuerst speichern, dann Bilder hochladen
+                    </div>
+                    <div id="img-uploader" style="display:none">
+                      <input type="file" id="img-file-input" accept="image/*" multiple
+                        style="display:none" onchange="handleFileSelect(event)"/>
+                      <div class="img-upload-zone" id="img-drop-zone"
+                        ondragover="event.preventDefault();this.classList.add('drag-over')"
+                        ondragleave="this.classList.remove('drag-over')"
+                        ondrop="handleDrop(event)"
+                        onclick="document.getElementById('img-file-input').click()">
+                        <div class="iuz-icon">🖼️</div>
+                        <div class="iuz-text">Bilder hier ablegen oder klicken</div>
+                        <div class="iuz-hint">JPG, PNG, WebP · Mehrere gleichzeitig möglich</div>
+                      </div>
+                      <div class="img-upload-spinner" id="img-spinner" style="display:none">⏳ Hochladen…</div>
+                      <span class="img-count-badge" id="img-count"></span>
+                      <div class="img-grid" id="img-grid"></div>
+                    </div>
+                  </div>
+                  <div class="e-hint" style="margin-top:10px">
+                    Fotos von Artikeln die du snipen willst.<br>
+                    KI gleicht neue Listings gegen diese Bilder ab.<br>
+                    <span style="color:var(--purple)">Benötigt Anthropic API Key in Einstellungen.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="editor-actions">
+              <button class="btn-save" onclick="saveProfile()">💾 Speichern</button>
+              <button class="btn-delete" id="btn-delete" onclick="deleteProfile()" style="display:none">Löschen</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ps-right -->
+    </div><!-- /profile-split -->
+  </div><!-- /tab-profile -->
+
+
+  <!-- ══ TAB: Einstellungen ════════════════════════════════════════ -->
+  <div id="tab-settings" class="tab-pane">
+    <div class="settings-tab-body">
+      <div>
+        <div class="settings-panel">
+            <div class="settings-section">
+              <div class="settings-section-title">KI-Bilderkennung (Anthropic)</div>
+              <div class="settings-field">
+                <label class="settings-field-label">Anthropic API Key</label>
+                <div class="key-input-wrap">
+                  <input class="e-input" id="s-anthropic-key" type="password"
+                    placeholder="sk-ant-api03-…" autocomplete="off"/>
+                  <button class="key-toggle" onclick="toggleKeyVisibility('s-anthropic-key',this)">👁</button>
+                </div>
+                <div class="settings-field-hint">
+                  Wird für KI-Bildvergleich genutzt: der Bot prüft neue Listings gegen deine
+                  Trainingsbilder.<br>
+                  Key holen: <a href="https://console.anthropic.com/" target="_blank"
+                    style="color:var(--accent)">console.anthropic.com</a>
+                </div>
+                <div id="s-anthropic-status" class="settings-status missing">
+                  ⚠️ Kein API Key – KI-Matching deaktiviert
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Discord-Benachrichtigungen</div>
+              <div class="settings-field">
+                <label class="settings-field-label">Webhook URL</label>
+                <input class="e-input" id="s-discord-url" type="url"
+                  placeholder="https://discord.com/api/webhooks/…"/>
+                <div class="settings-field-hint">
+                  Der Bot sendet eine Embed-Nachricht in deinen Discord-Channel wenn ein Match
+                  gefunden wird.<br>
+                  Einrichten: Discord Channel → Einstellungen → Integrationen → Webhooks
+                </div>
+                <div id="s-discord-status" class="settings-status missing">
+                  ⚠️ Kein Webhook – Discord-Alerts deaktiviert
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-settings-save" onclick="saveSettings()">💾 Einstellungen speichern</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-settings -->
+
+  <!-- ══ TAB: Abgelehnte ══════════════════════════════════════════ -->
+  <div id="tab-rejected" class="tab-pane">
+    <div class="main-header">
+      <div>
+        <div class="page-title">🗑 Abgelehnte Artikel</div>
+        <div class="page-subtitle">Gefunden aber nicht weitergeleitet — nur im Arbeitsspeicher</div>
+      </div>
+      <div class="header-actions">
+        <button class="hdr-btn" onclick="loadRejected()">⟳ Aktualisieren</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 22px">
+      <div id="rejected-list" class="rejected-list"></div>
+    </div>
+  </div><!-- /tab-rejected -->
+
+</div><!-- /app-body -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════════════════
+const S = {
+  tab:          'bot',
+  profiles:     [],
+  selectedIds:  new Set(),
+  editingId:    null,
+  editorBrands:   [],
+  editorKeywords: [],
+  running:      false,
+  eventSource:  null,
+  totalMatch:   0,
+  totalSeen:    0,
+  totalVision:  0,
+  showingFeed:  false,
+  visionActive: false,
+  discordActive:false,
+};
+
+// ══════════════════════════════════════════════════════════════════
+// Init
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadProfiles();
+  await pollStatus();
+  await loadSettings();
+  setInterval(pollStatus, 5000);
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Tab Switching
+// ══════════════════════════════════════════════════════════════════
+function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.tab-' + t);
+  if (btn) btn.classList.add('active');
+
+  ['bot','profile','settings','rejected'].forEach(name => {
+    const el = document.getElementById('tab-' + name);
+    if (el) el.classList.toggle('active', name === t);
+  });
+
+  if (t === 'settings') loadSettings();
+  if (t === 'rejected') loadRejected();
+  if (t === 'profile')  renderProfileSidebar();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Profiles
+// ══════════════════════════════════════════════════════════════════
+async function loadProfiles() {
+  try {
+    const r = await fetch('/api/profiles');
+    S.profiles = await r.json();
+    renderBotProfileGrid();
+    renderProfileSidebar();
+  } catch(e) { console.error('Profile laden:', e); }
+}
+
+// ── Bot: Profile Grid ──────────────────────────────────────────
+function renderBotProfileGrid() {
+  const grid = document.getElementById('bot-profile-grid');
+
+  if (!S.profiles.length) {
+    grid.innerHTML = `<div class="empty-profiles">
+      <div class="ei">📋</div>
+      <h3>Noch keine Profile</h3>
+      <p>Erstelle zuerst Watch-Profile mit Marken, Keywords und Bildern.</p>
+      <button class="go-profile" onclick="setTab('profile');newProfile()">Profile erstellen →</button>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = S.profiles.map(p => {
+    const sel      = S.selectedIds.has(p.id);
+    const brands   = (p.brands   || []).slice(0, 4);
+    const keywords = (p.keywords || []).slice(0, 3);
+    const priceStr = (p.price_from || p.price_to)
+      ? ((p.price_from ? `€${p.price_from}` : '') + ' – ' + (p.price_to ? `€${p.price_to}` : '∞'))
+      : '';
+    const aiLabel = p.image_count
+      ? `<span class="ai">🧠 ${p.image_count} Bilder</span>`
+      : `<span>📋 Filter-only</span>`;
+
+    return `<div class="profile-card ${sel ? 'selected' : ''}" onclick="toggleProfileSelect(${p.id})">
+      ${sel ? '<div class="pc-check">✓</div>' : ''}
+      <div class="pc-name">${esc(p.name)}</div>
+      <div class="pc-tags">
+        ${brands.map(b => `<span class="pc-tag brand">${esc(b)}</span>`).join('')}
+        ${keywords.map(k => `<span class="pc-tag kw">${esc(k)}</span>`).join('')}
+      </div>
+      <div class="pc-meta">
+        ${aiLabel}
+        ${priceStr ? `<span>💰 ${priceStr}</span>` : ''}
+        <span>⏱ ${p.interval || 15}s</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleProfileSelect(id) {
+  if (S.selectedIds.has(id)) S.selectedIds.delete(id);
+  else S.selectedIds.add(id);
+  renderBotProfileGrid();
+  renderBotSelectedList();
+}
+
+function renderBotSelectedList() {
+  const list     = document.getElementById('bot-selected-list');
+  const selected = S.profiles.filter(p => S.selectedIds.has(p.id));
+
+  if (!selected.length) {
+    list.innerHTML = `<span class="bss-hint">Kein Profil ausgewählt — Profile oben anklicken</span>`;
+    document.getElementById('start-btn').disabled = true;
+    return;
+  }
+
+  document.getElementById('start-btn').disabled = false;
+  list.innerHTML = selected.map(p => `
+    <div class="bss-chip">
+      <div class="bss-chip-dot"></div>
+      <span>${esc(p.name)}</span>
+      <span class="bss-chip-x" onclick="event.stopPropagation();toggleProfileSelect(${p.id})">✕</span>
+    </div>`).join('');
+}
+
+// ── Profile Tab: Sidebar ───────────────────────────────────────
+function renderProfileSidebar() {
+  const list = document.getElementById('profile-list');
+  if (!S.profiles.length) {
+    list.innerHTML = `<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--text3);line-height:1.6">
+      Noch keine Profile.<br>Klick auf + Neu.</div>`;
+    return;
+  }
+  list.innerHTML = S.profiles.map(p => {
+    const active = S.editingId === p.id;
+    return `<div class="profile-list-item ${active ? 'active' : ''}" onclick="editProfile(${p.id})">
+      <div class="pli-icon">${p.image_count ? '🧠' : '📋'}</div>
+      <div>
+        <div class="pli-name">${esc(p.name)}</div>
+        <div class="pli-meta">${(p.brands||[]).join(', ') || '–'} · ${p.image_count} Bilder</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Profile: New / Edit ────────────────────────────────────────
+function newProfile() {
+  setTab('profile');
+  S.editingId    = null;
+  S.editorBrands   = [];
+  S.editorKeywords = [];
+  document.getElementById('e-name').value             = '';
+  document.getElementById('e-price-min').value        = '';
+  document.getElementById('e-price-max').value        = '';
+  document.getElementById('e-interval').value         = '15';
+  document.getElementById('e-discord-webhook').value  = '';
+  document.getElementById('e-brand-inp').value        = '';
+  document.getElementById('e-kw-inp').value           = '';
+  renderEditorTags();
+  document.getElementById('editor-empty').style.display = 'none';
+  document.getElementById('editor-form').style.display  = '';
+  document.getElementById('btn-delete').style.display   = 'none';
+  document.getElementById('img-save-first').style.display = '';
+  document.getElementById('img-uploader').style.display   = 'none';
+  renderProfileSidebar();
+  document.getElementById('e-name').focus();
+}
+
+function editProfile(id) {
+  const p = S.profiles.find(x => x.id === id);
+  if (!p) return;
+  setTab('profile');
+  S.editingId      = id;
+  S.editorBrands   = [...(p.brands   || [])];
+  S.editorKeywords = [...(p.keywords || [])];
+  document.getElementById('e-name').value            = p.name;
+  document.getElementById('e-price-min').value       = p.price_from || '';
+  document.getElementById('e-price-max').value       = p.price_to   || '';
+  document.getElementById('e-interval').value        = p.interval   || 15;
+  document.getElementById('e-discord-webhook').value = p.discord_webhook || '';
+  renderEditorTags();
+  document.getElementById('editor-empty').style.display = 'none';
+  document.getElementById('editor-form').style.display  = '';
+  document.getElementById('btn-delete').style.display   = '';
+  document.getElementById('img-save-first').style.display = 'none';
+  document.getElementById('img-uploader').style.display   = '';
+  loadImages(id);
+  renderProfileSidebar();
+}
+
+async function saveProfile() {
+  const name = document.getElementById('e-name').value.trim();
+  if (!name) { toast('⚠️ Profilname eingeben'); return; }
+
+  const payload = {
+    name,
+    brands:          S.editorBrands,
+    keywords:        S.editorKeywords,
+    price_from:      parseFloat(document.getElementById('e-price-min').value) || null,
+    price_to:        parseFloat(document.getElementById('e-price-max').value) || null,
+    interval:        parseInt(document.getElementById('e-interval').value)    || 15,
+    discord_webhook: document.getElementById('e-discord-webhook').value.trim(),
+  };
+
+  try {
+    let r;
+    if (S.editingId) {
+      r = await fetch(`/api/profiles/${S.editingId}`, {
+        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+    } else {
+      r = await fetch('/api/profiles', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+    }
+    if (!r.ok) throw new Error((await r.json()).error || 'Fehler');
+    const saved = await r.json();
+    if (!S.editingId) {
+      S.editingId = saved.id;
+      document.getElementById('img-save-first').style.display = 'none';
+      document.getElementById('img-uploader').style.display   = '';
+      document.getElementById('btn-delete').style.display     = '';
+    }
+    await loadProfiles();
+    toast('✅ Profil gespeichert');
+  } catch(e) { toast('⚠️ ' + e.message); }
+}
+
+async function deleteProfile() {
+  if (!S.editingId) return;
+  if (!confirm('Profil wirklich löschen?')) return;
+  try {
+    await fetch(`/api/profiles/${S.editingId}`, {method:'DELETE'});
+    S.editingId = null;
+    document.getElementById('editor-empty').style.display = '';
+    document.getElementById('editor-form').style.display  = 'none';
+    await loadProfiles();
+    toast('🗑 Profil gelöscht');
+  } catch(e) { toast('⚠️ Fehler'); }
+}
+
+// ── Tags ───────────────────────────────────────────────────────
+function addEditorTag(type) {
+  const inp = document.getElementById(type === 'brand' ? 'e-brand-inp' : 'e-kw-inp');
+  const val = inp.value.trim();
+  if (!val) return;
+  const arr = type === 'brand' ? S.editorBrands : S.editorKeywords;
+  if (!arr.includes(val)) arr.push(val);
+  inp.value = '';
+  renderEditorTags();
+}
+
+function removeEditorTag(type, val) {
+  if (type === 'brand') S.editorBrands   = S.editorBrands.filter(x => x !== val);
+  else                  S.editorKeywords = S.editorKeywords.filter(x => x !== val);
+  renderEditorTags();
+}
+
+function renderEditorTags() {
+  document.getElementById('e-brand-tags').innerHTML =
+    S.editorBrands.map(b =>
+      `<span class="tag brand">${esc(b)}<span class="tag-x" onclick="removeEditorTag('brand','${esc(b)}')">✕</span></span>`
+    ).join('');
+  document.getElementById('e-kw-tags').innerHTML =
+    S.editorKeywords.map(k =>
+      `<span class="tag kw">${esc(k)}<span class="tag-x" onclick="removeEditorTag('kw','${esc(k)}')">✕</span></span>`
+    ).join('');
+}
+
+// ── Images ─────────────────────────────────────────────────────
+async function loadImages(profileId) {
+  try {
+    const r = await fetch(`/api/profiles/${profileId}/images`);
+    if (!r.ok) return;
+    const imgs = await r.json();
+    if (S.editingId !== profileId) return; // race condition guard
+    const grid  = document.getElementById('img-grid');
+    const count = document.getElementById('img-count');
+    grid.innerHTML = imgs.map(img =>
+      `<div class="img-thumb">
+        <img src="${esc(img.url)}" loading="lazy"/>
+        <button class="img-thumb-del" onclick="deleteImage(${profileId},'${esc(img.filename)}')" title="Löschen">✕</button>
+      </div>`
+    ).join('');
+    count.textContent = imgs.length ? `${imgs.length} Bild${imgs.length !== 1 ? 'er' : ''} hochgeladen` : '';
+  } catch(e) {}
+}
+
+async function handleFileSelect(e) {
+  await uploadImages(e.target.files);
+  e.target.value = '';
+}
+
+async function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('img-drop-zone').classList.remove('drag-over');
+  if (e.dataTransfer.files.length) await uploadImages(e.dataTransfer.files);
+}
+
+async function uploadImages(files) {
+  if (!S.editingId) { toast('⚠️ Profil erst speichern'); return; }
+  if (!files.length) return;
+  const spinner = document.getElementById('img-spinner');
+  spinner.style.display = '';
+  let uploaded = 0;
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append('image', file);
+    try {
+      const r = await fetch(`/api/profiles/${S.editingId}/images`, {method:'POST', body:fd});
+      if (r.ok) uploaded++;
+    } catch(_) {}
+  }
+  spinner.style.display = 'none';
+  await loadImages(S.editingId);
+  await loadProfiles();
+  toast(`✅ ${uploaded} Bild${uploaded !== 1 ? 'er' : ''} hochgeladen`);
+}
+
+async function deleteImage(profileId, filename) {
+  try {
+    await fetch(`/api/profiles/${profileId}/images/${encodeURIComponent(filename)}`, {method:'DELETE'});
+    await loadImages(profileId);
+    await loadProfiles();
+  } catch(e) { toast('⚠️ Fehler beim Löschen'); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Settings Tab
+// ══════════════════════════════════════════════════════════════════
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/live/settings');
+    const s = await r.json();
+    const keyEl = document.getElementById('s-anthropic-key');
+    const discEl = document.getElementById('s-discord-url');
+    if (keyEl)  keyEl.value  = s.anthropic_api_key || '';
+    if (discEl) discEl.value = s.discord_webhook   || '';
+    updateSettingsStatus(s);
+  } catch(e) {}
+}
+
+function updateSettingsStatus(s) {
+  const hasKey     = s.has_anthropic_key || !!(s.anthropic_api_key);
+  const hasDiscord = !!(s.discord_webhook && s.discord_webhook.trim());
+
+  const anthEl = document.getElementById('s-anthropic-status');
+  if (anthEl) {
+    anthEl.className = 'settings-status ' + (hasKey ? 'ok' : 'missing');
+    anthEl.textContent = hasKey ? '✅ API Key gesetzt – KI-Matching aktiv' : '⚠️ Kein API Key – KI-Matching deaktiviert';
+  }
+  const discEl = document.getElementById('s-discord-status');
+  if (discEl) {
+    discEl.className = 'settings-status ' + (hasDiscord ? 'ok' : 'missing');
+    discEl.textContent = hasDiscord ? '✅ Webhook gesetzt – Discord-Alerts aktiv' : '⚠️ Kein Webhook – Discord-Alerts deaktiviert';
+  }
+}
+
+async function saveSettings() {
+  const apiKey  = document.getElementById('s-anthropic-key').value.trim();
+  const discord = document.getElementById('s-discord-url').value.trim();
+  try {
+    const r = await fetch('/api/live/settings', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({anthropic_api_key: apiKey, discord_webhook: discord})
+    });
+    if (!r.ok) throw new Error('Speichern fehlgeschlagen');
+    updateSettingsStatus({anthropic_api_key: apiKey, discord_webhook: discord, has_anthropic_key: !!apiKey});
+    toast('✅ Einstellungen gespeichert');
+  } catch(e) { toast('⚠️ ' + e.message); }
+}
+
+function toggleKeyVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+async function loadRejected() {
+  const list = document.getElementById('rejected-list');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/live/rejected?limit=100');
+    const items = await r.json();
+    if (!items.length) {
+      list.innerHTML = `<div class="rej-empty">Keine abgelehnten Artikel — Bot läuft entweder noch nicht oder alle gefundenen Artikel haben den Filter bestanden.</div>`;
+      return;
+    }
+    list.innerHTML = items.map(item => {
+      const price   = item.price != null ? `€${parseFloat(item.price).toFixed(2)}` : '–';
+      const brand   = item.brand || '';
+      const profile = item.profile ? `📋 ${esc(item.profile)}` : '';
+      const reason  = item.reason || 'Kein Match';
+      const imgHtml = item.image
+        ? `<img class="rej-img" src="${esc(item.image)}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=rej-img-ph>👟</div>'">`
+        : `<div class="rej-img-ph">👟</div>`;
+      const url = item.url || '#';
+      return `<a class="rej-card" href="${esc(url)}" target="_blank" style="text-decoration:none">
+        ${imgHtml}
+        <div class="rej-info">
+          <div class="rej-title">${esc(item.title || '–')}</div>
+          <div class="rej-meta">
+            ${brand ? `<span style="color:var(--accent);font-weight:700">${esc(brand)}</span>` : ''}
+            ${profile}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          <div class="rej-price">${price}</div>
+          <div class="rej-reason" title="${esc(reason)}">${esc(reason)}</div>
+        </div>
+      </a>`;
+    }).join('');
+  } catch(e) {
+    if (list) list.innerHTML = `<div class="rej-empty">⚠️ Fehler beim Laden</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Bot Control
+// ══════════════════════════════════════════════════════════════════
+async function toggleBot() {
+  if (S.running) { await stopBot(); } else { await startBot(); }
+}
+
+async function startBot() {
+  if (!S.selectedIds.size) {
+    toast('⚠️ Mindestens ein Profil auswählen');
+    return;
+  }
+
+  const profileIds = [...S.selectedIds];
+
+  try {
+    const r = await fetch('/api/live/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({profile_ids: profileIds})
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'Fehler');
+    const data = await r.json();
+
+    S.running       = true;
+    S.visionActive  = data.vision_active  || false;
+    S.discordActive = data.discord_active || false;
+
+    updateBotUI(true);
+    connectSSE();
+
+    const selected = S.profiles.filter(p => S.selectedIds.has(p.id));
+    let msg = `✅ Bot gestartet · ${selected.map(p=>p.name).join(', ')}`;
+    if (S.visionActive)  msg += ' · 🧠 KI aktiv';
+    if (S.discordActive) msg += ' · 🔔 Discord';
+    toast(msg, 4500);
+  } catch(e) { toast('⚠️ ' + e.message); }
+}
+
+async function stopBot() {
+  try {
+    await fetch('/api/live/stop', {method:'POST'});
+    S.running = false;
+    if (S.eventSource) { S.eventSource.close(); S.eventSource = null; }
+    updateBotUI(false);
+    toast('⏹ Bot gestoppt');
+  } catch(e) {}
+}
+
+function updateBotUI(running) {
+  const btn = document.getElementById('start-btn');
+  btn.className = 'start-btn ' + (running ? 'running' : 'idle');
+  document.getElementById('btn-icon').textContent = running ? '⏹' : '▶';
+  document.getElementById('btn-text').textContent = running ? 'Bot stoppen' : 'Bot starten';
+
+  document.getElementById('s-vision-chip').style.display  = (running && S.visionActive)  ? '' : 'none';
+  document.getElementById('s-discord-chip').style.display = (running && S.discordActive) ? '' : 'none';
+
+  if (running) showFeedView();
+}
+
+function showFeedView() {
+  S.showingFeed = true;
+  document.getElementById('bot-select-view').style.display = 'none';
+  document.getElementById('bot-feed-view').style.display   = '';
+  document.getElementById('feed-toggle-btn').style.display = '';
+  document.getElementById('feed-toggle-btn').textContent   = '📋 Profile';
+}
+
+function toggleFeedView() {
+  if (S.showingFeed) {
+    S.showingFeed = false;
+    document.getElementById('bot-feed-view').style.display   = 'none';
+    document.getElementById('bot-select-view').style.display = '';
+    document.getElementById('feed-toggle-btn').textContent   = '⚡ Live Feed';
+  } else {
+    S.showingFeed = true;
+    document.getElementById('bot-select-view').style.display = 'none';
+    document.getElementById('bot-feed-view').style.display   = '';
+    document.getElementById('feed-toggle-btn').textContent   = '📋 Profile';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SSE
+// ══════════════════════════════════════════════════════════════════
+function connectSSE() {
+  if (S.eventSource) S.eventSource.close();
+  S.eventSource = new EventSource('/api/live/stream');
+  S.eventSource.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'item') {
+        addToFeed(data.item);
+        S.totalMatch++;
+        if (data.item.vision_matched) S.totalVision++;
+        updateStats();
+      }
+      if (data.type === 'heartbeat') { updateStatusDot(data.status || 'running'); }
+    } catch(_) {}
+  };
+  S.eventSource.onerror = () => {
+    updateStatusDot('error');
+    if (S.running) setTimeout(connectSSE, 5000);
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Feed
+// ══════════════════════════════════════════════════════════════════
+function addToFeed(item) {
+  const grid  = document.getElementById('feed-grid');
+  const empty = document.getElementById('feed-empty');
+  empty.style.display = 'none';
+
+  const card = document.createElement('div');
+  card.className = 'item-card fresh' + (item.vision_matched ? ' vision-match' : '');
+  card.onclick   = () => window.open(item.url, '_blank');
+
+  const time  = new Date().toLocaleTimeString('de', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const price = item.price ? `€${parseFloat(item.price).toFixed(2).replace('.',',')}` : '–';
+  const imgH  = item.image
+    ? `<img class="ic-img" src="${esc(item.image)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  const phSt  = item.image ? 'style="display:none"' : '';
+  const badge = item.vision_matched
+    ? `<div class="ic-vision">🧠 KI</div>`
+    : `<div class="ic-new">NEU</div>`;
+
+  card.innerHTML = `
+    <div class="ic-img-wrap">
+      ${imgH}
+      <div class="ic-ph" ${phSt}>🧥</div>
+      ${badge}
+      <div class="ic-time">${time}</div>
+    </div>
+    <div class="ic-body">
+      <div class="ic-brand">${esc(item.brand || '')}</div>
+      <div class="ic-title">${esc(item.title)}</div>
+      <div class="ic-foot">
+        <div class="ic-price">${price}</div>
+        ${item.size ? `<div class="ic-size">${esc(item.size)}</div>` : ''}
+      </div>
+      ${item.matched_profile ? `<div class="ic-profile">📋 ${esc(item.matched_profile)}</div>` : ''}
+    </div>`;
+
+  grid.insertBefore(card, grid.firstChild);
+  setTimeout(() => card.classList.remove('fresh'), 3000);
+  while (grid.children.length > 100) grid.removeChild(grid.lastChild);
+}
+
+function clearFeed() {
+  document.getElementById('feed-grid').innerHTML = '';
+  document.getElementById('feed-empty').style.display = '';
+  S.totalMatch = 0; S.totalSeen = 0; S.totalVision = 0;
+  updateStats();
+  fetch('/api/live/history', {method:'DELETE'});
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Status Polling
+// ══════════════════════════════════════════════════════════════════
+async function pollStatus() {
+  try {
+    const r = await fetch('/api/live/status');
+    const d = await r.json();
+    const wasRunning = S.running;
+    S.running   = ['running','rate_limited'].includes(d.status);
+    S.totalSeen = d.items_seen || 0;
+
+    if (d.vision_checks !== undefined) S.totalVision = d.vision_checks;
+
+    if (S.running && !wasRunning && !S.eventSource) { connectSSE(); updateBotUI(true); }
+    if (!S.running && wasRunning) updateBotUI(false);
+
+    updateStatusDot(d.status);
+    updateStats();
+
+    if (d.last_poll) {
+      const sec = Math.round(Date.now() / 1000 - d.last_poll);
+      const txt = sec < 60 ? `vor ${sec}s` : '–';
+      document.getElementById('s-last').textContent         = txt;
+      document.getElementById('s-last-chip').style.display  = S.running ? '' : 'none';
+    }
+  } catch(_) {}
+}
+
+function updateStats() {
+  document.getElementById('s-seen').textContent  = S.totalSeen;
+  document.getElementById('s-match').textContent = S.totalMatch;
+}
+
+function updateStatusDot(status) {
+  const labels = {running:'● Live',stopped:'Gestoppt',error:'⚠ Fehler',rate_limited:'⏳ Rate-Limit'};
+  const color  = {running:'var(--green)',stopped:'var(--text3)',error:'var(--red)',rate_limited:'var(--orange)'};
+  const txt = labels[status] || status;
+  document.getElementById('s-dot').className          = 's-dot ' + status;
+  document.getElementById('s-status-txt').textContent = txt;
+  document.getElementById('s-status-txt').style.color = color[status] || '';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Helpers
+// ══════════════════════════════════════════════════════════════════
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toast(msg, dur=3200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), dur);
+}
+</script>
+</body>
+</html>
